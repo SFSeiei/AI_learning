@@ -1,5 +1,9 @@
 # 使用VGG16模型
 from keras.applications.vgg16 import VGG16
+from keras.models import Model
+from keras.layers import Dense, Dropout, Activation, Flatten
+from keras.layers import Input
+
 print('Start build VGG16 -------')
 
 # 获取vgg16的卷积部分，如果要获取整个vgg16网络需要设置:include_top=True
@@ -7,12 +11,12 @@ model_vgg16_conv = VGG16(weights='imagenet', include_top=False)
 model_vgg16_conv.summary()
 
 # 创建自己的输入格式
-# if K.image_data_format() == 'channels_first':
-#   input_shape = (3, img_width, img_height)
-# else:
-#   input_shape = (img_width, img_height, 3)
+if K.image_data_format() == 'channels_first':
+    input_shape = (3, img_width, img_height)
+else:
+    input_shape = (img_width, img_height, 3)
 
-input = Input(input_shape, name = 'image_input') # 注意，Keras有个层就是Input层
+input = Input(input_shape, name='image_input')  # 注意，Keras有个层就是Input层
 
 # 将vgg16模型原始输入转换成自己的输入
 output_vgg16_conv = model_vgg16_conv(input)

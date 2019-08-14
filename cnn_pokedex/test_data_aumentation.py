@@ -6,7 +6,6 @@ matplotlib.use("Agg")
 # import the necessory packages
 from keras.preprocessing.image import ImageDataGenerator  # 用于数据增强
 from keras.optimizers import Adam
-from keras.utils import to_categorical
 from keras.preprocessing.image import img_to_array
 from sklearn.preprocessing import LabelBinarizer
 from sklearn.model_selection import train_test_split  # 用来创建训练和测试分叉。
@@ -34,7 +33,7 @@ args = vars(ap.parse_args())
 EPOCHS = 100
 INIT_LR = 1e-3
 BS = 32
-IMAGE_DIMS = (96, 96, 3)  # (96,96,3)
+IMAGE_DIMS = (224, 224, 3)  # (96,96,3)
 
 # initialize the data and labels
 data = []
@@ -76,63 +75,25 @@ labels = lb.fit_transform(labels)
 # the data for training and the remaining 20% for testing
 (trainX, testX, trainY, testY) = train_test_split(data, labels, test_size=0.2, random_state=42)
 
-# print("trainY.shape", trainY.shape)
-# print("testY.shape", testY.shape)
-# # trainY = trainY.reshape(trainY.shape[0])
-# # testY = testY.reshape(testY.shape[0])
-# # print("train:", trainX.shape, trainY.shape)
-# # print("test:", testX.shape, testY.shape)
-# # print("trainY", trainX)
-# # print("testy", testY)
-# trainY = lb.fit_transform(trainY)
-# trainY = to_categorical(trainY)
-# testY = lb.fit_transform(testY)
-# testY = to_categorical(testY)
-# print("trainY.shape", trainY.shape)
-# print("testY.shape", testY.shape)
-# # print("trainY", trainX)
-# # print("testy", testY)
-trainY = trainY.reshape(trainY.shape[0]*trainY.shape[1])
-testY = testY.reshape(testY.shape[0]*testY.shape[1])
-# print("trainY.shape", trainY.shape)
-# print("testY.shape", testY.shape)
 # construct the image generator for data augmentation(数据增强)
 aug = ImageDataGenerator(rotation_range=25, width_shift_range=0.1, height_shift_range=0.1, shear_range=0.2,
                          zoom_range=0.2, horizontal_flip=True, fill_mode="nearest")
 # initialize the model
-print("[INFO] compiling model...")
-model = SmallerVGGNet.build(width=IMAGE_DIMS[1], height=IMAGE_DIMS[0], depth=IMAGE_DIMS[2], classes=len(lb.classes_))
-opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
-model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
+# print("[INFO] compiling model...")
+# model = SmallerVGGNet.build(width=IMAGE_DIMS[1], height=IMAGE_DIMS[0], depth=IMAGE_DIMS[2], classes=len(lb.classes_))
+# opt = Adam(lr=INIT_LR, decay=INIT_LR / EPOCHS)
+# model.compile(loss="categorical_crossentropy", optimizer=opt, metrics=["accuracy"])
 
-# train the network
-print("[INFO] training network...")
-H = model.fit_generator(
-    aug.flow(testX, testY, batch_size=BS),
-    validation_data=(testX, testY),
-    steps_per_epoch=len(trainX) // BS,
-    epochs=EPOCHS, verbose=1)
+testX_aug = aug.flow(testX, testY, batch_size=BS)
 
-# save the model to disk
-print("[INFO] serializing network...")
-model.save(args["model"])
+x_batch = testX_aug.next()
+plt.imshow(x_batch[0].reshape(1024, 2058), cmap='gray')
+plt.show()
 
-# save the label binarizer to disk
-print("[INFO] serializing label binarizer...")
-f = open(args["labelbin"], "wb")
-f.write(pickle.dumps(lb))
-f.close()
-
-# plot the training loss and accuracy
-plt.style.use("ggplot")
-plt.figure()
-N = EPOCHS
-plt.plot(np.arange(0, N), H.history["loss"], label="train_loss")
-plt.plot(np.arange(0, N), H.history["val_loss"], label="val_loss")
-plt.plot(np.arange(0, N), H.history["acc"], label="train_acc")
-plt.plot(np.arange(0, N), H.history["val_acc"], label="val_acc")
-plt.title("Training Loss and Accuracy")
-plt.xlabel("Epoch #")
-plt.ylabel("Loss/Accuracy")
-plt.legend(loc="upper left")
-plt.savefig(args["plot"])
+# # train the network
+# print("[INFO] training network...")
+# H = model.fit_generator(
+#     aug.flow(testX, testY, batch_size=BS),
+#     validation_data=(testX, testY),
+#     steps_per_epoch=len(trainX) // BS,
+#     epochs=EPOCHS, verbose=1)

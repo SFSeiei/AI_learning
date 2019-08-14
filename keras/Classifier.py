@@ -36,10 +36,10 @@ rmsprop = RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 model.compile(optimizer=rmsprop,
               loss='categorical_crossentropy',
               metrics=['accuracy'])  # metrics赋值为'accuracy'，会在训练过程中输出正确率
-
+model.summary()
 # # 这次我们用fit()来训练网路
 print('Training ------------')
-model.fit(X_train, y_train, epochs=4, batch_size=32)
+# model.fit(X_train, y_train, epochs=4, batch_size=32)
 #
 print('\nTesting ------------')
 # 评价训练出的网络

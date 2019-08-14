@@ -1,5 +1,6 @@
 # import the necessary packages
-from keras.models import Sequential
+from keras.models import Sequential, Model
+from keras.applications.vgg16 import VGG16
 from keras.layers.normalization import BatchNormalization
 from keras.layers.convolutional import Conv2D
 from keras.layers.convolutional import MaxPooling2D
@@ -7,6 +8,7 @@ from keras.layers.core import Activation
 from keras.layers.core import Flatten
 from keras.layers.core import Dropout
 from keras.layers.core import Dense
+from keras.layers import Input
 from keras import backend as K
 
 
@@ -24,78 +26,28 @@ class SmallerVGGNet:
         if K.image_data_format() == "channel_first":
             inputShape = (depth, height, width)
             chanDim = 1
-        # (Conv => Relu) *2 => Pool
-        model.add(Conv2D(64, (3, 3), padding='same', input_shape=inputShape))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(64, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-        # (Conv => Relu) *2 => Pool
-        model.add(Conv2D(128, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(128, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-        # (Conv => Relu) *3 => Pool
-        model.add(Conv2D(256, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(256, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(256, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-        # (Conv => Relu) *3 => Pool
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-        # (Conv => Relu) *3 => Pool
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(Conv2D(512, (3, 3), padding='same'))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization(axis=chanDim))
-        model.add(MaxPooling2D(pool_size=(2, 2)))
-        model.add(Dropout(0.25))
-        # first (and only) set of FC => RELU layers
-        model.add(Flatten())
-        model.add(Dense(4096))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization())
-        model.add(Dropout(0.5))
-        model.add(Dense(4096))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization())
-        model.add(Dropout(0.5))
-        model.add(Dense(1000))
-        model.add(Activation("relu"))
-        model.add(BatchNormalization())
-        model.add(Dropout(0.5))
 
-        # softmax classifier
-        model.add(Dense(classes))
-        model.add(Activation("softmax"))
+        # 获取vgg16的卷积部分，如果要获取整个vgg16网络需要设置:include_top=True
+        model_vgg16_conv = VGG16(weights='imagenet', include_top=False)
+        model_vgg16_conv.summary()
+
+        input = Input(inputShape, name='image_input')  # 注意，Keras有个层就是Input层
+        # 将vgg16模型原始输入转换成自己的输入
+        output_vgg16_conv = model_vgg16_conv(input)
+
+        # output_vgg16_conv是包含了vgg16的卷积层，下面我需要做二分类任务，所以需要添加自己的全连接层
+        x = Flatten(name='flatten')(output_vgg16_conv)
+        x = Dense(4096, activation='relu', name='fc1')(x)
+        x = Dense(512, activation='relu', name='fc2')(x)
+        x = Dense(128, activation='relu', name='fc3')(x)
+        x = Dense(1, activation='softmax', name='predictions')(x)
+
+        # 最终创建出自己的vgg16模型
+        my_model = Model(input=input, output=x)
+
+        # 下面的模型输出中，vgg16的层和参数不会显示出，但是这些参数在训练的时候会更改
+        print('\nThis is my vgg16 model for the task')
+        my_model.summary()
 
         # return the constructed network architecture
-        return model
+        return my_model
